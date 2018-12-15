@@ -1,0 +1,428 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+
+using namespace std;
+
+//#include "riesenie11.h"
+
+#if !defined( _RIESENIE_H_ )
+#define _RIESENIE_H_
+
+const char chordDelimiter = '$';
+const char phraseDelimiter = '#';
+const char spaceReplacer = '%';
+
+//zdedene riesenie
+class Phrase {
+    string text;
+    string chord;
+    bool put(const string &phrase);
+public:
+    Phrase(const string &phrase);
+    string getText() const;
+    string getChord() const;
+};
+
+class Line {
+    vector<Phrase> phrases;
+    void putPhrase(const string &phrase);
+    int putLine(const string &line);
+public:
+    Line(const string &line);
+    int numberOfPhrases() const;
+    string getPhraseText(unsigned int index) const;
+    string getPhraseChord(unsigned int index) const;
+    string getLine() const;
+};
+
+class Song {
+    string title;
+    vector<Line> lines;
+    vector<string> chords;
+    int current;
+    void addChords();
+public:
+    Song(const string& title = "") : title(title), current(-1) {};
+    const string getTitle() const { return title; };
+    int addLine(const string &line);
+    const int numberOfLines() const { return lines.size(); };
+    const string getLine(unsigned int index) const;
+    const int numberOfPhrases() const;
+    const string getPhrase(unsigned int index) const;
+    const string getPhraseChord(unsigned int index) const;
+    const string getPhraseText(unsigned int index) const;
+    bool addChord(const string &chord);
+    const string getListOfChords() const;
+    const int numberOfChords() const { return chords.size(); };
+    const string getChord(unsigned int index) const;
+    bool first();
+    bool next();
+    const string getCurrentPhrase() const;
+    const string getCurrentPhraseText() const;
+    const string getCurrentPhraseChord() const;
+//koniec zdedeneho riesenia
+
+//1.uloha - nacitat pesnicku zo suboru
+    bool readSongFromFile(const string &songTitle);
+};
+
+//2.uloha
+class SongBook {
+    map<string, Song>  songbook;
+    set<string> chords;
+    //3.uloha
+    string currentSong = "";
+public:
+    //2.uloha
+    SongBook() {};
+    bool addSong(const Song &song);
+    bool isInSongbook(const string &songTitle) const;
+    bool removeSong(const string &songTitle);
+    int numberOfSongs() const { return songbook.size(); };
+    const string listOfSongs() const;
+    //3.uloha
+    SongBook(const SongBook& songBook);
+    bool setCurrentSong(const string &songTitle);
+    Song &song();
+    const string getListOfChords()  const;
+    //4.uloha
+    bool isChordInSongbook(const string &chord) const;
+    int addSongbook(const SongBook &songBook);
+};
+//5.uloha
+class Musician {
+    string name;
+    SongBook songbook;
+public:
+    Musician(const string& name = "") : name(name) {};
+    const string playList() const { return songbook.listOfSongs(); };
+    int learnSongsFromSongbook(const SongBook &songBook);
+    const string getListOfChords() const;
+    const string unknownChord(const Song &songTitle) const;
+    bool addSongIfAbleToPlayIt(const Song &songTitle);
+};
+#endif
+
+bool DUMMY_BOOL = true;
+int DUMMY_INT = 0;
+string DUMMY_STRING = "";
+
+//Zdedene riesenie programu pre pracu s triedami FRAZA, VERS a PESNICKA
+string exchangeCharacters(const string &text, const char co, const char za) {
+    string vystup;
+    for (unsigned int i = 0; i < text.length(); i++) {
+        if (text[i] == co)
+            vystup += za;
+        else
+            vystup += text[i];
+    }
+    return vystup;
+}
+Phrase::Phrase(const string &phrase) : text(""), chord("") {
+    put(phrase);
+};
+bool Phrase::put(const string &phrase) {
+    if (phrase.length() == 0) {
+        return false;
+    }
+    string temp = exchangeCharacters(phrase, ' ', spaceReplacer);
+    temp = exchangeCharacters(temp, chordDelimiter, ' ');
+    istringstream rr(temp);
+    string prvy, druhy;
+    if (rr >> prvy) {
+        if (rr >> druhy) {
+            chord = prvy;
+            druhy = exchangeCharacters(druhy, spaceReplacer, ' ');
+            text = druhy;
+        }
+        else {
+            prvy = exchangeCharacters(prvy, spaceReplacer, ' ');
+            text = prvy;
+            chord = "";
+        }
+        return true;
+    }
+    return false;
+}
+string Phrase::getText() const {
+    return text;
+}
+string Phrase::getChord() const {
+    return chord;
+}
+Line::Line(const string &line) {
+    putLine(line);
+};
+int Line::putLine(const string &line) {
+    if (line.length() == 0) {
+        phrases.clear();
+        return phrases.size();
+    }
+    phrases.clear();
+    string temp = exchangeCharacters(line, ' ', spaceReplacer);
+    temp = exchangeCharacters(temp, phraseDelimiter, ' ');
+    istringstream rr(temp);
+    string fraza;
+    while (rr >> fraza) {
+        putPhrase(fraza);
+    }
+    return phrases.size();
+}
+void Line::putPhrase(const string &phrase) {
+    phrases.push_back(Phrase(phrase));
+}
+int Line::numberOfPhrases() const {
+    return phrases.size();
+}
+string Line::getPhraseText(unsigned int index) const {
+    if (index >= 0 && index < phrases.size()) {
+        return phrases[index].getText();
+    }
+    return "Zly index";
+}
+string Line::getPhraseChord(unsigned int index) const {
+    if (index >= 0 && index < phrases.size()) {
+        return phrases[index].getChord();
+    }
+    return "Zly index";
+}
+string Line::getLine() const {
+    string vers;
+    for (unsigned int i = 0; i < numberOfPhrases(); i++) {
+        if (i > 0) {
+            vers += phraseDelimiter;
+        }
+        if (phrases[i].getChord().length() > 0) {
+            vers += phrases[i].getChord() + chordDelimiter;
+        }
+        vers += phrases[i].getText();
+    }
+    return vers;
+}
+int Song::addLine(const string &line) {
+    if (line.length() == 0) {
+        return numberOfLines();
+    }
+    lines.push_back(Line(line));
+    addChords();
+    return numberOfLines();
+}
+const string Song::getLine(unsigned int index) const {
+    if (index < numberOfLines()) {
+        return lines[index].getLine();
+    }
+    return "Neexistujuci vers";
+}
+const int Song::numberOfPhrases() const {
+    int pocitadloFraz = 0;
+    for (unsigned int i = 0; i < numberOfLines(); i++) {
+        pocitadloFraz += lines[i].numberOfPhrases();
+    }
+    return pocitadloFraz;
+}
+const string Song::getPhrase(unsigned int index) const {
+    if (index < numberOfPhrases()) {
+        int pocitadloFraz = 0;
+        for (unsigned int i = 0; i < numberOfLines(); i++) {
+            if (pocitadloFraz <= index
+                && index < (pocitadloFraz + lines[i].numberOfPhrases())) {
+                string temp = lines[i].getPhraseChord(index - pocitadloFraz);
+                temp += chordDelimiter;
+                temp += lines[i].getPhraseText(index - pocitadloFraz);
+                return temp;
+            }
+            pocitadloFraz += lines[i].numberOfPhrases();
+        }
+    }
+    return "Neexistujuca fraza";
+}
+const string Song::getPhraseText(unsigned int index) const {
+    if (index < numberOfPhrases()) {
+        int pocitadloFraz = 0;
+        for (unsigned int i = 0; i < numberOfLines(); i++) {
+            if (pocitadloFraz <= index
+                && index < (pocitadloFraz + lines[i].numberOfPhrases())) {
+                string temp = lines[i].getPhraseChord(index - pocitadloFraz);
+                return lines[i].getPhraseText(index - pocitadloFraz);
+            }
+            pocitadloFraz += lines[i].numberOfPhrases();
+        }
+    }
+    return "Neexistujuca fraza";
+}
+const string Song::getPhraseChord(unsigned int index) const {
+    if (index < numberOfPhrases()) {
+        int pocitadloFraz = 0;
+        for (unsigned int i = 0; i < numberOfLines(); i++) {
+            if (pocitadloFraz <= index
+                && index < (pocitadloFraz + lines[i].numberOfPhrases())) {
+                string temp = lines[i].getPhraseChord(index - pocitadloFraz);
+                return lines[i].getPhraseChord(index - pocitadloFraz);
+            }
+            pocitadloFraz += lines[i].numberOfPhrases();
+        }
+    }
+    return "Neexistujuca fraza";
+}
+void Song::addChords() {
+    for (unsigned int i = 0; i < lines[numberOfLines() - 1].numberOfPhrases(); i++) {
+        string temp = lines[numberOfLines() - 1].getPhraseChord(i);
+        if (temp.length() > 0) {
+            addChord(temp);
+        }
+    }
+}
+bool Song::addChord(const string &chord) {
+  for (unsigned int i = 0; i < chords.size(); i++) {
+    if (chords[i] == chord) {
+      return false;
+    }
+  }
+  priority_queue<string> usporiadaneAkordy;
+  for (unsigned int i = 0; i < chords.size(); i++) {
+    usporiadaneAkordy.push(chords[i]);
+  }
+  usporiadaneAkordy.push(chord);
+  chords.clear();
+  unsigned int pocet = usporiadaneAkordy.size();
+  for (unsigned int i = 0; i < pocet; i++) {
+    chords.push_back(usporiadaneAkordy.top());
+    usporiadaneAkordy.pop();
+  }
+  return true;
+}
+const string Song::getListOfChords() const {
+    string temp = "";
+    for (auto iter = chords.begin(); iter != chords.end(); iter++) {
+        if (iter != chords.begin()) {
+            temp += ",";
+        }
+        temp += *iter;
+    }
+    return temp;
+}
+const string Song::getChord(unsigned int index) const {
+    if (index < chords.size()) {
+        auto iter = chords.begin();
+        for (unsigned int i = 0; i < index; i++, iter++);
+        return *iter;
+    }
+    return "Taky akord nie je";
+}
+bool Song::first() {
+    if (numberOfPhrases() > 0) {
+        current = 0;
+        return true;
+    }
+    return false;
+}
+bool Song::next() {
+    if (current < numberOfPhrases() - 1) {
+        current++;
+        return true;
+    }
+    return false;
+}
+const string Song::getCurrentPhrase() const {
+    return getPhrase(current);
+}
+const string Song::getCurrentPhraseText() const {
+    return getPhraseText(current);
+}
+const string Song::getCurrentPhraseChord() const {
+    return getPhraseChord(current);
+}
+//Koniec zdedeneho riesenia
+
+//1.uloha - nacitat pesnicku zo suboru
+bool Song::readSongFromFile(const string &songTitle) {
+	ifstream ifs;
+	ifs.open(songTitle);
+	if (!ifs) {
+		return false;
+	}
+	string riadok = "";
+	while (getline(ifs, riadok)) {
+		if (riadok.length() > 0 &&
+			(riadok[riadok.length() - 1] == '\n' ||  /* AK JE NA KONCI ZAKAZANY ZNAK */
+				riadok[riadok.length() - 1] == '\r' ||
+				riadok[riadok.length() - 1] == '\t' ||
+				riadok[riadok.length() - 1] == '\0' ||
+				riadok[riadok.length() - 1] == '\b' ||
+				riadok[riadok.length() - 1] == '\v')) {
+			riadok = riadok.substr(0, riadok.length() - 1);
+		}
+		if (riadok.length() > 0) { /* Prazdny riadok */
+			this->addLine(riadok);
+			riadok = "";
+		}
+	}
+	return true;
+}
+
+//2.uloha
+bool SongBook::addSong(const Song &song) {
+  songbook.insert(pair<string, Song>(song.getTitle(), song));
+  return DUMMY_BOOL;
+}
+
+bool SongBook::isInSongbook(const string &songTitle) const {
+  return DUMMY_BOOL;
+}
+
+bool SongBook::setCurrentSong(const string &songTitle) {
+  return DUMMY_BOOL;
+}
+
+bool SongBook::removeSong(const string &songTitle) {
+  return DUMMY_BOOL;
+}
+
+const string SongBook::listOfSongs() const {
+  return DUMMY_STRING;
+}
+
+//3.uloha
+SongBook::SongBook(const SongBook &songBook)
+{ }
+
+Song & SongBook::song() {
+  Song empty("Dummy");
+  addSong(empty);
+  return songbook.begin()->second;
+}
+
+const string SongBook::getListOfChords() const {
+  return DUMMY_STRING;
+}
+
+//4.uloha
+bool SongBook::isChordInSongbook(const string &chord) const {
+  return DUMMY_BOOL;
+}
+
+int SongBook::addSongbook(const SongBook &songBook) {
+  return DUMMY_INT;
+}
+
+//5.uloha
+int Musician::learnSongsFromSongbook(const SongBook &songBook) {
+  return DUMMY_INT;
+}
+
+const string Musician::getListOfChords() const {
+  return DUMMY_STRING;
+}
+
+const string Musician::unknownChord(const Song &songTitle) const {
+    return DUMMY_STRING;
+}
+
+bool Musician::addSongIfAbleToPlayIt(const Song &songTitle) {
+    return DUMMY_BOOL;
+}
