@@ -1,0 +1,109 @@
+#include <iostream>
+#include <sstream>
+#include <fstream>
+#include <vector>
+#include <set>
+#include <map>
+#include <queue>
+
+using namespace std;
+
+//#include "riesenie11.h"
+
+#if !defined( _RIESENIE_H_ )
+#define _RIESENIE_H_
+
+const char chordDelimiter = '$';
+const char phraseDelimiter = '#';
+const char spaceReplacer = '%';
+
+//zdedene riesenie
+class Phrase {
+    string text;
+    string chord;
+    bool put(const string &phrase);
+public:
+    Phrase(const string &phrase);
+    string getText() const;
+    string getChord() const;
+};
+
+class Line {
+    vector<Phrase> phrases;
+    void putPhrase(const string &phrase);
+    int putLine(const string &line);
+public:
+    Line(const string &line);
+    int numberOfPhrases() const;
+    string getPhraseText(unsigned int index) const;
+    string getPhraseChord(unsigned int index) const;
+    string getLine() const;
+};
+
+class Song {
+    string title;
+    vector<Line> lines;
+    set<string> chords;
+    int current;
+    void addChords();
+public:
+    Song(const string& title = "") : title(title), current(-1) {};
+    const string getTitle() const { return title; };
+    int addLine(const string &line);
+    const int numberOfLines() const { return lines.size(); };
+    const string getLine(unsigned int index) const;
+    const int numberOfPhrases() const;
+    const string getPhrase(unsigned int index) const;
+    const string getPhraseChord(unsigned int index) const;
+    const string getPhraseText(unsigned int index) const;
+    bool addChord(const string &chord);
+    const string getListOfChords() const;
+    const int numberOfChords() const { return chords.size(); };
+    const string getChord(unsigned int index) const;
+    bool first();
+    bool next();
+    const string getCurrentPhrase() const;
+    const string getCurrentPhraseText() const;
+    const string getCurrentPhraseChord() const;
+//koniec zdedeneho riesenia
+
+//1.uloha - nacitat pesnicku zo suboru
+    bool readSongFromFile(const string &songTitle);
+};
+
+//2.uloha
+class SongBook {
+    map<string, Song>  songbook;
+    set<string> chords;
+    //3.uloha
+    string currentSong = "";
+public:
+    //2.uloha
+    SongBook() {};
+    bool addSong(const Song &song);
+    bool isInSongbook(const string &songTitle) const;
+    bool removeSong(const string &songTitle);
+    int numberOfSongs() const { return songbook.size(); };
+    const string listOfSongs() const;
+    //3.uloha
+    SongBook(const SongBook& songBook);
+    bool setCurrentSong(const string &songTitle);
+    Song &song();
+    const string getListOfChords()  const;
+    //4.uloha
+    bool isChordInSongbook(const string &chord) const;
+    int addSongbook(const SongBook &songBook);
+};
+//5.uloha
+class Musician {
+    string name;
+    SongBook songbook;
+public:
+    Musician(const string& name = "") : name(name) {};
+    const string playList() const { return songbook.listOfSongs(); };
+    int learnSongsFromSongbook(const SongBook &songBook);
+    const string getListOfChords() const;
+    const string unknownChord(const Song &songTitle) const;
+    bool addSongIfAbleToPlayIt(const Song &songTitle);
+};
+#endif
