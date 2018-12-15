@@ -43,7 +43,7 @@ public:
 class Song {
     string title;
     vector<Line> lines;
-    vector<string> chords;
+    set<string> chords;
     int current;
     void addChords();
 public:
@@ -278,23 +278,7 @@ void Song::addChords() {
     }
 }
 bool Song::addChord(const string &chord) {
-  for (unsigned int i = 0; i < chords.size(); i++) {
-    if (chords[i] == chord) {
-      return false;
-    }
-  }
-  priority_queue<string> usporiadaneAkordy;
-  for (unsigned int i = 0; i < chords.size(); i++) {
-    usporiadaneAkordy.push(chords[i]);
-  }
-  usporiadaneAkordy.push(chord);
-  chords.clear();
-  unsigned int pocet = usporiadaneAkordy.size();
-  for (unsigned int i = 0; i < pocet; i++) {
-    chords.push_back(usporiadaneAkordy.top());
-    usporiadaneAkordy.pop();
-  }
-  return true;
+  return chords.insert(chord).second;
 }
 const string Song::getListOfChords() const {
     string temp = "";
@@ -341,23 +325,23 @@ const string Song::getCurrentPhraseChord() const {
 
 //1.uloha - nacitat pesnicku zo suboru
 bool Song::readSongFromFile(const string &songTitle) {
-	ifstream ifs;
+  ifstream ifs;
 	ifs.open(songTitle);
 	if (!ifs) {
 		return false;
 	}
-	string riadok = "";
+	string riadok="";
 	while (getline(ifs, riadok)) {
 		if (riadok.length() > 0 &&
 			(riadok[riadok.length() - 1] == '\n' ||  /* AK JE NA KONCI ZAKAZANY ZNAK */
-				riadok[riadok.length() - 1] == '\r' ||
-				riadok[riadok.length() - 1] == '\t' ||
-				riadok[riadok.length() - 1] == '\0' ||
-				riadok[riadok.length() - 1] == '\b' ||
-				riadok[riadok.length() - 1] == '\v')) {
+			riadok[riadok.length() - 1] == '\r' ||
+			riadok[riadok.length() - 1] == '\t' ||
+			riadok[riadok.length() - 1] == '\0' ||
+			riadok[riadok.length() - 1] == '\b' ||
+			riadok[riadok.length() - 1] == '\v')){
 			riadok = riadok.substr(0, riadok.length() - 1);
 		}
-		if (riadok.length() > 0) { /* Prazdny riadok */
+		if (riadok.length() > 0){ /* Prazdny riadok */
 			this->addLine(riadok);
 			riadok = "";
 		}
@@ -367,24 +351,46 @@ bool Song::readSongFromFile(const string &songTitle) {
 
 //2.uloha
 bool SongBook::addSong(const Song &song) {
-  songbook.insert(pair<string, Song>(song.getTitle(), song));
-  return DUMMY_BOOL;
+	if(songbook.insert(pair<string, Song>(song.getTitle(), song)).second){
+		return true;
+	}
+	return false;
 }
 
 bool SongBook::isInSongbook(const string &songTitle) const {
-  return DUMMY_BOOL;
+	if (this->songbook.find(songTitle) == this->songbook.end()) {
+		return false;
+	}
+	return true;
 }
 
 bool SongBook::setCurrentSong(const string &songTitle) {
-  return DUMMY_BOOL;
+  if (songTitle == "") {
+		return false;
+	}
+	this->currentSong = songTitle;
+	return true;
 }
 
 bool SongBook::removeSong(const string &songTitle) {
-  return DUMMY_BOOL;
+  if (!this->isInSongbook(songTitle)) {
+		return false;
+	}
+	auto position = this->songbook.find(songTitle);
+	this->songbook.erase(position);
+	return true;
 }
 
 const string SongBook::listOfSongs() const {
-  return DUMMY_STRING;
+  string vypis = "";
+	for (auto iter = songbook.begin(); iter != songbook.end(); ++iter) {
+		vypis += iter->first;
+		vypis += ',';
+	}
+	if (vypis[vypis.length() - 1] == ',') {
+		return vypis.substr(0,vypis.length() - 1);
+	}
+	return vypis;
 }
 
 //3.uloha
@@ -392,13 +398,30 @@ SongBook::SongBook(const SongBook &songBook)
 { }
 
 Song & SongBook::song() {
-  Song empty("Dummy");
-  addSong(empty);
-  return songbook.begin()->second;
+	if (this->songbook.size() == 0) { /* PRAZDNA MAPA SONGBOOK*/
+		string vynimka = "Neexistujuca piesen";
+		throw vynimka;
+	}
+	if (this->currentSong == "") {
+		return songbook.begin()->second;
+	}
+	return songbook.find(this->currentSong)->second;
+	
 }
 
 const string SongBook::getListOfChords() const {
-  return DUMMY_STRING;
+	/*map<Song, ,*/
+	string temp = "";
+	for (auto iter = chords.begin(); iter != chords.end(); iter++) {
+		if (iter != chords.begin()) {
+			temp += ",";
+		}
+		temp += *iter;
+	}
+	if (temp[temp.length() - 1] == ';') {
+		temp = temp.substr(0, temp.length() - 1);
+	}
+	return temp;
 }
 
 //4.uloha
